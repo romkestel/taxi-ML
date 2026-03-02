@@ -4,5 +4,5 @@ clean_data/
 Dataset/
 .vscode/
 .ipynb_checkpoints/
-__pychache__/
+__pycache__/
 environment.yml
