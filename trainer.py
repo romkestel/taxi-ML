@@ -8,17 +8,14 @@ from taxi_dataset import TaxiDataset
 device = torch.device(
     "cuda"
     if torch.cuda.is_available()
-    else "mps"
-    if torch.backends.mps.is_available()
-    else "cpu"
+    else "mps" if torch.backends.mps.is_available() else "cpu"
 )
 
-
-train_ds = TaxiDataset("./data/train_data.parquet")
+train_ds = TaxiDataset("./Dataset/train_compressed.parquet")
 train_loader = DataLoader(train_ds, batch_size=4096, shuffle=True, num_workers=4)
 
 
-cat_dims = [266, 266, 3, 7, 7, 7]
+cat_dims = [270, 270, 5, 8, 8, 8]
 model = WideAndDeepModel(cat_dims=cat_dims, num_cont=9).to(device)
 
 
