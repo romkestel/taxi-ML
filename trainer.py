@@ -1,34 +1,44 @@
-from torch.utils.data import DataLoader
-import tip_predictor as tp
-import taxi_dataset as td
 import torch
-import torch.optim as optim
 import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
+from wide_and_deep_model import WideAndDeepModel
+from taxi_dataset import TaxiDataset
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device(
+    "cuda"
+    if torch.cuda.is_available()
+    else "mps"
+    if torch.backends.mps.is_available()
+    else "cpu"
+)
 
-model = tp.TipPredictor().to(device)
-dataset = td.TaxiDataset("./data/train_tips.parquet")
-loader = DataLoader(dataset, batch_size=4096, shuffle=True, num_workers=8)
+
+train_ds = TaxiDataset("./data/train_data.parquet")
+train_loader = DataLoader(train_ds, batch_size=4096, shuffle=True, num_workers=4)
+
+
+cat_dims = [266, 266, 3, 7, 7, 7]
+model = WideAndDeepModel(cat_dims=cat_dims, num_cont=9).to(device)
+
 
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+for epoch in range(7):
+    model.train()
+    epoch_loss = 0
 
-for epoch in range(5):
-    total_loss = 0
-    for batch_features, batch_targets in loader:
-        x, y = batch_features.to(device), batch_targets.to(device)
+    for cat, cont, target in train_loader:
+        cat, cont, target = cat.to(device), cont.to(device), target.to(device)
 
-        predictions = model(x)
-        loss = criterion(predictions, y)
+        preds = model(cat, cont)
+        loss = criterion(preds, target)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        epoch_loss += loss.item()
 
-        total_loss += loss.item()
-
-    print(f"Epoch {epoch+1} | Loss: {total_loss / len(loader):.4f}")
-
-torch.save(model.state_dict(), "taxi_model.pth")
+    print(f"Epoch {epoch + 1} | Loss: {epoch_loss / len(train_loader):.6f}")
+torch.save(model.state_dict(), "wide_deep_taxi.pth")

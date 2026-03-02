@@ -1,6 +1,6 @@
-from torch import embedding
 import torch
 import torch.nn as nn
+from typing import cast
 
 
 class WideAndDeepModel(nn.Module):
@@ -14,7 +14,9 @@ class WideAndDeepModel(nn.Module):
             ]
         )
 
-        embedding_sum = sum([emb.embedding_dim for emb in self.embeddings])
+        embedding_sum = sum(
+            cast(nn.Embedding, emb).embedding_dim for emb in self.embeddings
+        )
 
         self.deep_layers = nn.Sequential(
             nn.Linear(embedding_sum + num_cont, 512),
@@ -33,3 +35,12 @@ class WideAndDeepModel(nn.Module):
             nn.ReLU(),
             nn.Linear(64, 1),
         )
+
+    def forward(self, cat_data, cont_data):
+
+        embedded = [emb(cat_data[:, i]) for i, emb in enumerate(self.embeddings)]
+        x_cat = torch.cat(embedded, dim=1)
+
+        x = torch.cat([x_cat, cont_data], dim=1)
+
+        return self.deep_layers(x).squeeze()

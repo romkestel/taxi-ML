@@ -7,13 +7,32 @@ class TaxiDataset(Dataset):
     def __init__(self, file_path):
         df = pl.read_parquet(file_path)
 
-        self.features = torch.tensor(
+        self.cat_features = torch.tensor(
+            df.select(
+                [
+                    "pulocationid",
+                    "dolocationid",
+                    "vendorid",
+                    "ratecodeid",
+                    "pickup_day",
+                    "dropoff_day",
+                ]
+            ).to_numpy(),
+            dtype=torch.long,
+        )
+
+        self.cont_features = torch.tensor(
             df.select(
                 [
                     (pl.col("trip_distance") / 50.0).clip(0, 1),
-                    (pl.col("duration_mins") / 120.0).clip(0, 1),
-                    (pl.col("pickup_hour") / 23.0),
-                    (pl.col("day_of_week") / 6.0),
+                    (pl.col("duration_mins") / 180.0).clip(0, 1),
+                    (pl.col("avg_speed_mph") / 100.0).clip(0, 1),
+                    "pickup_hour_sin",
+                    "pickup_hour_cos",
+                    "dropoff_hour_sin",
+                    "dropoff_hour_cos",
+                    (pl.col("fare_amount") / 200.0).clip(0, 1),
+                    (pl.col("congestion_surcharge") / 10.0).clip(0, 1),
                 ]
             ).to_numpy(),
             dtype=torch.float32,
@@ -24,7 +43,7 @@ class TaxiDataset(Dataset):
         )
 
     def __len__(self):
-        return len(self.features)
+        return len(self.target)
 
     def __getitem__(self, idx):
-        return self.features[idx], self.target[idx]
+        return self.cat_features[idx], self.cont_features[idx], self.target[idx]
