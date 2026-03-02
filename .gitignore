@@ -1,0 +1,8 @@
+data/
+clean_data/
+.venv/
+Dataset/
+.vscode/
+.ipynb_checkpoints/
+__pychache__/
+environment.yml
